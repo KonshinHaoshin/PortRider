@@ -48,6 +48,7 @@ class SSHTunnel:
             if self.client:
                 self.client.close()
 
+
     def forward(self, client_socket):
         print("Starting data forwarding...")
         try:
@@ -90,7 +91,7 @@ if __name__ == '__main__':
     # 获取 SSH 服务器地址
     ssh_host = input("请输入你的 SSH 服务器地址（例如 ssh-server.com）： ").strip()
     if not ssh_host:
-        print("SSH 服务器地址不能为空！")
+        print("SSH 服务器地址不能为空！！")
         exit(1)
     ssh_port=input("请输入ssh_port：").strip()
     # 获取 SSH 用户名

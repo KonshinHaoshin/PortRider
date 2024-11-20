@@ -12,7 +12,7 @@ if %error level% neq 0 (
         exit /b 1
     )
 ) else (
-    echo 依赖已满足，跳过安装步骤...
+    echo 依赖已满足，跳过安装步骤....
 )
 
 :: 运行主程序
