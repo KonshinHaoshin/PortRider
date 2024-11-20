@@ -1,3 +1,4 @@
+import time
 from threading import Thread
 
 import paramiko
@@ -17,40 +18,9 @@ class SSHTunnel:
         self.remote_port = remote_port
         self.client = None
 
-    def start_tunnel(self):
-        try:
-            self.client = SSHClient()
-            self.client.set_missing_host_key_policy(AutoAddPolicy())
-            self.client.connect(
-                hostname=self.ssh_host,
-                port=self.ssh_port,
-                username=self.ssh_user,
-                password=self.ssh_password
-            )
-            print(f"Connected to SSH server {self.ssh_host}:{self.ssh_port}")
-
-            server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            server.bind(('127.0.0.1', self.local_port))
-            server.listen(5)
-            print(f"Tunnel established: localhost:{self.local_port} -> {self.remote_host}:{self.remote_port}")
-
-            try:
-                while True:
-                    client_socket, addr = server.accept()
-                    print(f"Accepted connection from {addr}")
-                    Thread(target=self.forward, args=(client_socket,)).start()
-            finally:
-                server.close()
-        except Exception as e:
-            print(f"Error: {e}")
-        finally:
-            if self.client:
-                self.client.close()
-
-
     def forward(self, client_socket):
         print("Starting data forwarding...")
+        buffer_size = 4096  # 增大缓冲区大小
         try:
             remote_channel = self.client.get_transport().open_channel(
                 'direct-tcpip',
@@ -64,19 +34,28 @@ class SSHTunnel:
             print("Remote channel established.")
 
             while True:
-                data = client_socket.recv(1024)
+                start_time = time.time()
+
+                # 从本地接收数据
+                data = client_socket.recv(buffer_size)
                 if not data:
                     print("No data received from local client. Closing connection.")
                     break
                 print(f"Received {len(data)} bytes from local client.")
+
+                # 转发到远程
                 remote_channel.sendall(data)
 
-                remote_data = remote_channel.recv(1024)
+                # 从远程接收数据
+                remote_data = remote_channel.recv(buffer_size)
                 if not remote_data:
                     print("No data received from remote channel. Closing connection.")
                     break
                 print(f"Received {len(remote_data)} bytes from remote server.")
                 client_socket.sendall(remote_data)
+
+                end_time = time.time()
+                print(f"Data forwarding took {end_time - start_time:.2f} seconds.")
         except Exception as e:
             print(f"Error during forwarding: {e}")
         finally:
